@@ -93,7 +93,8 @@ export class Connection {
         this.clientReporter(this.renderState());
     }
 
-    public actionSetName(name: string) {
+    public actionSetName(name: s
+    tring) {
         this.user.setName(name);
     }
 
