@@ -48,71 +48,67 @@ class IndexerId<T extends IdentifiedById> {
 export class Connection {
     private readonly user: User;
     //private clientState: ClientState;
-    private readonly clientReporter: (e: Object) => void;
+    private readonly stateReporter: (e: Object) => void;
 
     constructor(reporter: (e: Object) => void, sessionId?: string) {
-        this.clientReporter = reporter;
+        this.stateReporter = reporter;
         this.renderState = this.renderState.bind(this);
-        this.getStateChange = this.getStateChange.bind(this);
         this.notifyChange = this.notifyChange.bind(this);
         this.actionSetName = this.actionSetName.bind(this);
         this.actionJoinWaitRoom = this.actionJoinWaitRoom.bind(this);
         this.actionSetReadyWaitRoom = this.actionSetReadyWaitRoom.bind(this);
         this.actionMakeGuess = this.actionMakeGuess.bind(this);
         if (sessionId == undefined || User.findById(sessionId) == undefined) {
-            this.user = new User("");
-            this.user.addListener(this.notifyChange);
+            this.user = new User("", this.notifyChange);
         } else {
             this.user = User.findById(sessionId);
         }
+        this.notifyChange();
     }
 
-    private renderState(): ClientState {
+    public renderState(): ClientState {
+        if (this.user == undefined) {
+            return;
+        }
         const r: ClientState = {
             sessionId: this.user.getSessionId(),
         };
-        if (this.user != undefined) {
-            r.userState = this.user.renderState();
-            const waitRoom = WaitRoom.findByUser(this.user);
-            const gameRoom = GameRoom.findByUser(this.user);
-            if (waitRoom != undefined) {
-                r.waitRoomState = waitRoom.renderState();
-            }
-            if (gameRoom != undefined) {
-                r.gameRoomState = gameRoom.renderState(this.user);
-            }
+        r.userState = this.user.renderState();
+        const waitRoom = WaitRoom.findByUser(this.user);
+        const gameRoom = GameRoom.findByUser(this.user);
+        if (waitRoom != undefined) {
+            r.waitRoomState = waitRoom.renderState();
+        }
+        if (gameRoom != undefined) {
+            r.gameRoomState = gameRoom.renderState(this.user);
         }
         return r;
     }
 
-    public getStateChange() {
-        return this.renderState();
-    }
-
     private notifyChange() {
-        this.clientReporter(this.renderState());
+        this.stateReporter(this.renderState());
     }
 
-    public actionSetName(name: s
-    tring) {
+    public actionSetName(name: string) {
         this.user.setName(name);
+        if (WaitRoom.findByUser(this.user) != undefined) {
+            WaitRoom.findByUser(this.user).notifyChange();
+        }
+        if (GameRoom.findByUser(this.user) != undefined) {
+            GameRoom.findByUser(this.user).notifyChange();
+        }
     }
 
     public actionJoinWaitRoom(roomId?: string) {
         if (WaitRoom.findByUser(this.user) != undefined) {
             WaitRoom.findByUser(this.user).leaveRoom(this.user);
         }
-        if (roomId == undefined) {
-            const t = new WaitRoom();
-            t.joinRoom(this.user);
+
+        if (roomId != undefined && WaitRoom.findById(roomId) != undefined) {
+            WaitRoom.findById(roomId).joinRoom(this.user);
         } else {
-            const t = WaitRoom.findById(roomId);
-            if (t == undefined) {
-                return;
-            }
-            t.joinRoom(this.user);
+            (new WaitRoom()).joinRoom(this.user);
         }
-        WaitRoom.findByUser(this.user).addListener(this.notifyChange);
     }
 
     public actionSetReadyWaitRoom(ready: boolean) {
@@ -133,18 +129,19 @@ export class Connection {
 class User extends IdentifiedById {
     private static readonly indexer: IndexerId<User> = new IndexerId<User>();
     private name: string;
-    private listener: (() => void)[];
+    private readonly listener: (() => void);
 
-    constructor(name: string) {
+    constructor(name: string, listener: () => void) {
         super();
+        this.listener = listener;
         User.indexer.add(this);
         this.setName(name);
         this.renderState = this.renderState.bind(this);
     }
 
-    public addListener = (listener: () => void) => this.listener.push(listener);
-
-    private notifyChange = () => this.listener.forEach(e => e());
+    public notifyChange = () => {
+        this.listener();
+    }
 
     public getSessionId = () => this.id;
     public static findById = (id: string) => User.indexer.get(id);
@@ -169,7 +166,6 @@ class WaitRoom extends IdentifiedById {
     private readonly maxPlayer = 2;
     private users: Set<User> = new Set<User>();
     private ready: Map<User, boolean> = new Map<User, boolean>();
-    private listener: (() => void)[];
 
     constructor() {
         super();
@@ -180,9 +176,7 @@ class WaitRoom extends IdentifiedById {
         this.renderState = this.renderState.bind(this);
     }
 
-    public addListener = (listener: () => void) => this.listener.push(listener);
-
-    private notifyChange = () => this.listener.forEach(e => e());
+    public notifyChange = () => this.users.forEach(e => e.notifyChange());
 
     joinRoom(user: User) {
         if (this.users.size < this.maxPlayer) {
@@ -199,6 +193,7 @@ class WaitRoom extends IdentifiedById {
         if (this.users.size == 0) {
             WaitRoom.indexer.del(this.id);
         }
+        user.notifyChange();
         this.notifyChange();
     }
 
@@ -212,8 +207,7 @@ class WaitRoom extends IdentifiedById {
         });
         if (allReady) {
             this.ready.clear();
-            const t = new GameRoom(Array.from(this.users));
-            this.listener.forEach(e => t.addListener(e));
+            new GameRoom(Array.from(this.users));
         }
         this.notifyChange();
     }
@@ -251,7 +245,6 @@ class GameRoom {
     }[];
     private readonly openCards: number[]
     private turn: number;
-    private listener: (() => void)[];
 
     private static randomInt(min: number, max: number) {
         return Math.floor(Math.random() * (max - min)) + min;
@@ -302,14 +295,14 @@ class GameRoom {
         this.makeGuess = this.makeGuess.bind(this);
         this.renderState = this.renderState.bind(this);
         this.leaveRoom = this.leaveRoom.bind(this);
+        this.notifyChange();
     }
 
-    public addListener = (listener: () => void) => this.listener.push(listener);
-
-    private notifyChange = () => this.listener.forEach(e => e());
+    public notifyChange = () => this.users.forEach(e => e.user.notifyChange());
 
     leaveRoom(user: User) {
         GameRoom.userIndex.delete(user);
+        user.notifyChange();
         this.notifyChange();
     }
 
