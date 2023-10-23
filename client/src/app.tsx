@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import {ClientState, ClientStateGameRoom, ClientStateWaitRoom} from "../../common/client-state";
 import {Actions} from "../../common/client-action";
 import {io, Socket} from "socket.io-client";
+import styles from "./main.css"
 
 class Connection {
     private socket: Socket;
@@ -36,6 +37,25 @@ class Connection {
         console.log(e);
         this.socket.emit("action", e);
     }
+}
+
+export function SceneJoinRoom({setName}: { setName: (name: string) => void }) {
+    return (<div></div>);
+}
+
+export function SceneNewRoom({setName}: { setName: (name: string) => void }) {
+    return (<div>
+        <div className="scene-title">
+            <h2>ようこそ</h2>
+            <h3>プレイ人数を選択してゲームを開始します</h3>
+        </div>
+        <div className="scene-main">
+            <div className={styles.select}>
+                <button type="button" className={styles.selectItem}>2</button>
+            </div>
+            <input type="text"/>
+        </div>
+    </div>);
 }
 
 export function SceneWelcome({setName}: { setName: (name: string) => void }) {
@@ -116,20 +136,14 @@ export function App({urlParams}: { urlParams: { [p: string]: string } }) {
         });
     }
 
-    if(state.waitRoomState == undefined){
-        return (<div>Connecting...</div>);
-    } else if(state.userState.userName == ""){
-        if(state.waitRoomState.users.length == 1){
-            return (<SceneNewRoom />);
-        } else{
-            return (<SceneJoinRoom />);
-        }
-    }
-
     if (state.waitRoomState == undefined) {
         return (<div>Connecting...</div>);
     } else if (state.userState.userName == "") {
-        return (<div><SceneWelcome setName={setName}/></div>);
+        if (state.waitRoomState.users.length == 1) {
+            return (<SceneNewRoom setName={setName}/>);
+        } else {
+            return (<SceneJoinRoom setName={setName}/>);
+        }
     } else if (state.gameRoomState == undefined) {
         return (<div><SceneWaitRoom state={state.waitRoomState} setReady={setReady}/></div>);
     } else {

@@ -1,19 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap');
 
-body{
+body {
     font-family: 'Inter', sans-serif;
+    font-weight: normal;
     margin: 0;
     padding: 0;
-    background-color: #FFFFFF;
+    background-color: #FAF5EF;
 }
-header{
+
+header {
     padding: 1rem;
     margin: 0;
     background-color: #7000FF;
 }
-h1{
-    color:#FFFFFF;
+
+h1 {
+    color: #FFFFFF;
     font-size: 1.5rem;
+    font-weight: normal;
     padding: 0;
     margin: 0;
+}
+
+main {
+    padding: 1rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: normal;
+    padding: 0;
+    margin: 0;
+}
+
+h3 {
+    font-size: 1rem;
+    font-weight: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.scene-main{
+
+}
+
+.select {
+    width: 100%;
+    height: 2rem;
+    background-color: #C2C2C2;
+    display: flex;
+    border-radius: 0.4rem;
+    margin-top: 1rem;
+}
+
+.selectItem {
+    flex: 1;
+    background-color: #C2C2C2;
+    color: #FFF;
+    font-size: 1rem;
+    outline: none;
+    border: none;
+    border-radius: 0.4rem;
+}
+
+.selectItemActive{
+    background-color: #47AD64;
 }
