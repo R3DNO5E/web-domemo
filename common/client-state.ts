@@ -18,7 +18,8 @@ export interface ClientStateGameRoom {
         cards: {
             value: number,
             open: boolean
-        }[]
+        }[],
+        winner: number
     }[],
     openCards: number[],
     turn: number,

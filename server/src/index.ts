@@ -27,7 +27,7 @@ class Server {
             if (Actions.isActionSetName(e)) {
                 con.actionSetName(e.name);
             } else if (Actions.isActionJoinWaitRoom(e)) {
-                con.actionJoinWaitRoom(e.roomId);
+                con.actionJoinWaitRoom(e.roomId, e.players);
             } else if (Actions.isActionSetReadyWaitRoom(e)) {
                 con.actionSetReadyWaitRoom(e.ready);
             } else if (Actions.isActionMakeGuess(e)) {

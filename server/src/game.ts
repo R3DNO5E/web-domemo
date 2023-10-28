@@ -62,7 +62,7 @@ export class Connection {
         this.user.notifyChange();
     }
 
-    public actionJoinWaitRoom(roomId?: string) {
+    public actionJoinWaitRoom(roomId?: string, players?: number) {
         if (WaitRoom.findByUser(this.user) != undefined) {
             const room = WaitRoom.findByUser(this.user);
             room.leaveRoom(this.user);
@@ -70,11 +70,14 @@ export class Connection {
         }
 
         if (roomId != undefined && WaitRoom.findById(roomId) != undefined) {
-            const room = WaitRoom.findById(roomId);
-            room.joinRoom(this.user);
+            let room = WaitRoom.findById(roomId);
+            if (!room.joinRoom(this.user)) {
+                room = new WaitRoom(players);
+                room.joinRoom(this.user);
+            }
             room.notifyChange();
         } else {
-            const room = new WaitRoom();
+            const room = new WaitRoom(players);
             room.joinRoom(this.user);
             room.notifyChange();
         }
@@ -139,12 +142,17 @@ class User extends IdentifiedById {
 class WaitRoom extends IdentifiedById {
     private static readonly indexer: IndexerId<WaitRoom> = new IndexerId<WaitRoom>();
     private static readonly userIndex: Map<User, WaitRoom> = new Map<User, WaitRoom>();
-    private readonly maxPlayer = 2;
+    private readonly maxPlayer: number = 2;
     private users: Set<User> = new Set<User>();
     private ready: Map<User, boolean> = new Map<User, boolean>();
 
-    constructor() {
+    constructor(playerCount: number = 2) {
         super();
+        if ([2, 3, 4, 5].find(e => e == playerCount) != undefined) {
+            this.maxPlayer = playerCount;
+        } else {
+            this.maxPlayer = 2;
+        }
         WaitRoom.indexer.add(this);
         this.joinRoom = this.joinRoom.bind(this);
         this.leaveRoom = this.leaveRoom.bind(this);
@@ -154,11 +162,13 @@ class WaitRoom extends IdentifiedById {
 
     public notifyChange = () => this.users.forEach(e => e.notifyChange());
 
-    joinRoom(user: User) {
+    joinRoom(user: User): boolean {
         if (this.users.size < this.maxPlayer) {
             this.users.add(user);
             WaitRoom.userIndex.set(user, this);
+            return true;
         }
+        return false;
     }
 
     leaveRoom(user: User) {
@@ -215,8 +225,9 @@ class WaitRoom extends IdentifiedById {
 
 class GameRoom {
     private static readonly userIndex: Map<User, GameRoom> = new Map<User, GameRoom>();
-    private users: {
+    private readonly users: {
         user: User,
+        winner: number,
         cards: {
             value: number,
             open: boolean
@@ -271,6 +282,7 @@ class GameRoom {
             else return -1;
         }).map((v, i) => ({
             user: v,
+            winner: 0,
             cards: c.players[i].map(e => ({value: e, open: false}))
         }));
         this.openCards = c.open;
@@ -290,10 +302,11 @@ class GameRoom {
         if (this.users[this.turn].user !== user) {
             return;
         }
+        const u = this.users[this.turn];
         const c = this.users[this.turn].cards;
         let nextUserOffset = 1;
         while (nextUserOffset < this.users.length &&
-        this.users[(this.turn + nextUserOffset) % this.users.length].cards.filter(e => !e.open).length == 0) {
+        this.users[(this.turn + nextUserOffset) % this.users.length].winner != 0) {
             nextUserOffset++;
         }
         this.turn = (this.turn + nextUserOffset) % this.users.length;
@@ -302,6 +315,9 @@ class GameRoom {
             return;
         }
         c[t[GameRoom.randomInt(0, t.length)]].open = true;
+        if (c.filter(e => !e.open).length == 0) {
+            u.winner = this.users.filter(e => e.winner != 0).length + 1;
+        }
     }
 
     static findByUser(user: User) {
@@ -314,6 +330,7 @@ class GameRoom {
             you: this.users.findIndex(e => e.user == user),
             users: this.users.map(e => ({
                 name: e.user.getName(),
+                winner: e.winner,
                 cards: e.user != user ? e.cards :
                     e.cards.map(c => ({
                         value: c.open ? c.value : 0,

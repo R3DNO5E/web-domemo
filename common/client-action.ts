@@ -6,7 +6,8 @@ export namespace Actions {
 
     export interface ActionJoinWaitRoom {
         action: "JoinWaitRoom",
-        roomId?: string
+        roomId?: string,
+        players?: number
     }
 
     export interface ActionSetReadyWaitRoom {

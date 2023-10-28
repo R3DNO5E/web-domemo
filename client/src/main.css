@@ -1,16 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap');
 
+html {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     font-weight: normal;
+    min-height: 100vh;
     margin: 0;
-    padding: 0;
+    display: grid;
+    grid-template: auto 0fr auto 1fr / 1fr minmax(auto, 30rem) 1fr;
     background-color: #FAF5EF;
 }
 
 header {
-    padding: 1rem;
+    grid-column: 1 / 4;
+    grid-row: 1 / 2;
     margin: 0;
+    padding: 1rem;
     background-color: #7000FF;
 }
 
@@ -23,7 +31,8 @@ h1 {
 }
 
 main {
-    padding: 1rem;
+    grid-column: 2 / 3;
+    grid-row: 3 / 4;
 }
 
 h2 {
@@ -40,17 +49,140 @@ h3 {
     margin: 0;
 }
 
-.scene-main{
+button {
+    background-color: #FF774B;
+    color: #FFF;
+    font-size: 1rem;
+    outline: none;
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    width: 100%;
+}
 
+button:active {
+    background-color: #DE6943;
+}
+
+button.buttonNotAvailable {
+    background-color: #C2C2C2;
+}
+
+button.notAvailable:active {
+    background-color: #C2C2C2;
+}
+
+input.textInput {
+    width: 100%;
+    height: 2rem;
+    box-sizing: border-box;
+    margin: 0.5rem 0;
+}
+
+div {
+    margin: 0.5rem;
+}
+
+div.sceneTitle {
+    margin: 1rem 0.5rem;
+}
+
+div.waitRoomPlayer {
+    background-color: #FFFFFF;
+    display: flex;
+    border-radius: 0.4rem;
+    margin: 0.5rem 0;
+}
+
+div.waitRoomPlayerName {
+    flex: 1 max-content;
+    padding: 0.5rem;
+}
+
+div.waitRoomPlayerReady {
+    background-color: #47AD64;
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+    color: #FFFFFF;
+    flex: 0 max-content;
+}
+
+div.waitRoomPlayerNotReady {
+    background-color: #656565;
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+    color: #FFFFFF;
+    flex: 0 max-content;
+}
+
+div.gameRoomControls {
+    margin: 0;
+    padding: 0;
+}
+
+div.gameRoomResults {
+    margin: 0;
+    background-color: #FFFFFF;
+    border-radius: 0.4rem;
+}
+
+div.gameRoomResult {
+    padding: 0.2rem;
+    margin: 0;
+    display: flex;
+}
+
+div.gameRoomResultRank {
+    flex: 0 3rem;
+}
+
+div.gameRoomResultName {
+    flex: 1;
+}
+
+div.gameRoomPlayers {
+    margin: 0;
+}
+
+div.gameRoomPlayer {
+    margin: 0.5rem 0;
+    background-color: #FFFFFF;
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+}
+
+div.gameRoomPlayerName {
+    margin: 0;
+}
+
+div.gameRoomPlayerCards {
+    display: flex;
+    justify-content: space-around;
+}
+
+div.gameRoomPlayerCard {
+    padding: 0.8rem;
+    margin: 0;
+    border-radius: 0.4rem;
+    border: #ADADAD solid thin;
+}
+
+div.gameRoomPlayerCardOpen {
+    background-color: #A5EDF6;
+}
+
+.sceneMain {
 }
 
 .select {
     width: 100%;
-    height: 2rem;
-    background-color: #C2C2C2;
     display: flex;
     border-radius: 0.4rem;
-    margin-top: 1rem;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
 }
 
 .selectItem {
@@ -60,9 +192,28 @@ h3 {
     font-size: 1rem;
     outline: none;
     border: none;
-    border-radius: 0.4rem;
+    border-right: thin solid #ADADAD;
+    border-radius: 0;
 }
 
-.selectItemActive{
+.selectItem:first-child {
+    border-radius: 0.4rem 0 0 0.4rem;
+}
+
+.selectItem:last-child {
+    border-radius: 0 0.4rem 0.4rem 0;
+    border: none;
+}
+
+.selectItem:hover {
+    background-color: #ADADAD;
+}
+
+.selectItemActive {
     background-color: #47AD64;
 }
+
+.selectItemActive:hover {
+    background-color: #47AD64;
+}
+
