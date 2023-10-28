@@ -1,18 +1,24 @@
 import * as SocketIO from "socket.io"
+import * as express from "express"
+import * as http from "http"
 import {Connection} from "./game";
-import {Actions, ActionResponses} from "../../common/client-action"
+import {Actions} from "../../common/client-action"
 
 class Server {
-    private server: SocketIO.Server;
+    private readonly server: SocketIO.Server;
+    private readonly app: express.Express;
+    private readonly http: http.Server;
 
-    constructor(port: number, corsOrigin: string) {
-        this.server = new SocketIO.Server({
-            cors: {
-                origin: corsOrigin
-            }
-        });
+    constructor(port: number) {
+        this.app = express.default();
+        this.app.use(express.static("../client/dist"));
+
+        this.http = http.createServer(this.app);
+
+        this.server = new SocketIO.Server(this.http);
         this.server.on("connection", Server.initializeSocket);
-        this.server.listen(port);
+
+        this.http.listen(port);
     }
 
     public exit = () => this.server.close();
@@ -42,5 +48,5 @@ class Server {
     }
 }
 
-const server = new Server(13001, "http://localhost:8080");
+const server = new Server(3000);
 //process.on("SIGINT", server.exit);

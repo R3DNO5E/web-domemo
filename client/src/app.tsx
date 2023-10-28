@@ -13,7 +13,7 @@ class Connection {
         this.reportState = stateListener;
         this.stateEventHandler = this.stateEventHandler.bind(this);
         this.actionEmitter = this.actionEmitter.bind(this);
-        this.socket = io("ws://localhost:13001", {
+        this.socket = io({
             auth: {
                 sessionId: sessionStorage.getItem("session_id")
             }
@@ -120,7 +120,7 @@ export function SceneWaitRoom({state, setReady, leaveRoom}: {
             }}>{localReady ? "準備完了" : "準備中"}</button>
             <button type="button" onClick={e => {
                 e.preventDefault();
-                navigator.clipboard.writeText("http://localhost:8080/?roomId=" + state.roomId)
+                navigator.clipboard.writeText("https://domemo.rxd.jp/?roomId=" + state.roomId)
                     .then(e => alert("コピーしました"));
             }}>招待リンクをコピー
             </button>
