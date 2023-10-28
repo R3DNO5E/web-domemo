@@ -1,6 +1,6 @@
 import * as SocketIO from "socket.io"
 import {Connection} from "./game";
-import {Actions} from "../../common/client-action"
+import {Actions, ActionResponses} from "../../common/client-action"
 
 class Server {
     private server: SocketIO.Server;
@@ -21,13 +21,18 @@ class Server {
         const con = new Connection((e => {
             console.log(e);
             socket.emit("state", e);
+        }), (e => {
+            console.log(e);
+            socket.emit("response", e);
         }), socket.handshake.auth.sessionId);
         socket.on("action", e => {
             console.log(e);
-            if (Actions.isActionSetName(e)) {
+            if (Actions.isActionSync(e)) {
+                con.actionSync();
+            } else if (Actions.isActionSetName(e)) {
                 con.actionSetName(e.name);
             } else if (Actions.isActionJoinWaitRoom(e)) {
-                con.actionJoinWaitRoom(e.roomId, e.players);
+                con.actionJoinWaitRoom(e.roomId, e.players, e.leaveCurrent);
             } else if (Actions.isActionSetReadyWaitRoom(e)) {
                 con.actionSetReadyWaitRoom(e.ready);
             } else if (Actions.isActionMakeGuess(e)) {

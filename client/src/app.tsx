@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, useRef} from "react";
 import {ClientState, ClientStateGameRoom, ClientStateWaitRoom} from "../../common/client-state";
 import {Actions} from "../../common/client-action";
 import {io, Socket} from "socket.io-client";
@@ -94,9 +94,10 @@ export function SceneNewRoom({setName, newRoom}: {
     </div>);
 }
 
-export function SceneWaitRoom({state, setReady}: {
+export function SceneWaitRoom({state, setReady, leaveRoom}: {
     state: ClientStateWaitRoom,
-    setReady: (ready: boolean) => void
+    setReady: (ready: boolean) => void,
+    leaveRoom: () => void
 }) {
     const [localReady, setLocalReady] = useState(state.users[0].ready);
     return (<div>
@@ -123,11 +124,20 @@ export function SceneWaitRoom({state, setReady}: {
                     .then(e => alert("コピーしました"));
             }}>招待リンクをコピー
             </button>
+            <button type="button" onClick={e => {
+                e.preventDefault();
+                leaveRoom();
+            }}>ゲームを退出
+            </button>
         </div>
     </div>);
 }
 
-export function SceneGameRoom({state, makeGuess}: { state: ClientStateGameRoom, makeGuess: (guess: number) => void }) {
+export function SceneGameRoom({state, makeGuess, leaveGame}: {
+    state: ClientStateGameRoom,
+    makeGuess: (guess: number) => void,
+    leaveGame: () => void
+}) {
     const [select, setSelect] = useState(1);
     return (<div>
         {state.users[state.you].winner != 0 ?
@@ -159,11 +169,23 @@ export function SceneGameRoom({state, makeGuess}: { state: ClientStateGameRoom, 
                                 if (state.you == state.turn) {
                                     makeGuess(select);
                                 }
-                            }}>{state.turn == state.you ? "推測を決定" : "あなたのターンではありません"}</button>
+                            }}>{state.turn == state.you ? "決定" : "あなたのターンではありません"}</button>
                 </div> : <div className={styles.gameRoomControls}>
-
+                    <button type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                leaveGame();
+                            }}>
+                        ゲームを退出
+                    </button>
                 </div>}
             <div className={styles.gameRoomPlayers}>
+                <div className={styles.gameRoomPlayer}>
+                    <div className={styles.gameRoomPlayerName}>公開カード</div>
+                    <div className={styles.gameRoomPlayerCards}>
+                        {state.openCards.map(e => (<div className={styles.gameRoomPlayerCard}>{e}</div>))}
+                    </div>
+                </div>
                 {state.users.map((e, i) => (
                     <div className={styles.gameRoomPlayer}>
                         <div className={styles.gameRoomPlayerName}>{e.name + (i == state.you ? "(あなた)" : "")}</div>
@@ -193,9 +215,11 @@ export function SceneGameRoom({state, makeGuess}: { state: ClientStateGameRoom, 
 export function App({urlParams}: { urlParams: { [p: string]: string } }) {
     const [state, setState] = useState<ClientState>({});
     const [conn, setConn] = useState<Connection>();
+    const messages = useRef<string[]>([]);
+    const [overlayMessage, setOverlayMessage] = useState<string[]>([]);
     useEffect(() => {
         if (conn == undefined) {
-            const t = new Connection(setState)
+            const t = new Connection(setState);
             setConn(t);
             t.actionEmitter({
                 action: "JoinWaitRoom",
@@ -203,6 +227,15 @@ export function App({urlParams}: { urlParams: { [p: string]: string } }) {
             });
         }
     });
+
+    function joinRoom(roomId?: string, playerCount?: number) {
+        conn.actionEmitter({
+            action: "JoinWaitRoom",
+            roomId: roomId,
+            players: playerCount,
+            leaveCurrent: true
+        });
+    }
 
     function setName(name: string) {
         conn.actionEmitter({
@@ -212,10 +245,7 @@ export function App({urlParams}: { urlParams: { [p: string]: string } }) {
     }
 
     function newRoom(players: number) {
-        conn.actionEmitter({
-            action: "JoinWaitRoom",
-            players: players
-        });
+        joinRoom(undefined, players);
     }
 
     function setReady(ready: boolean) {
@@ -232,17 +262,46 @@ export function App({urlParams}: { urlParams: { [p: string]: string } }) {
         });
     }
 
+    function leaveGame() {
+        conn.actionEmitter({
+            action: "JoinWaitRoom",
+            roomId: state.waitRoomState.roomId
+        });
+    }
+
+    function leaveRoom() {
+        joinRoom(undefined, undefined);
+        setName("");
+    }
+
+    function showMessage(msg: string) {
+        messages.current.unshift(msg);
+        setOverlayMessage(Array.from(messages.current));
+        setTimeout(e => {
+            messages.current.pop();
+            setOverlayMessage(Array.from(messages.current));
+        }, 5000);
+    }
+
+    let scene = <div></div>;
+
     if (state.waitRoomState == undefined) {
-        return (<div>Connecting...</div>);
+        scene = <div>Connecting...</div>;
     } else if (state.userState.userName == "") {
         if (state.waitRoomState.users.length == 1) {
-            return (<SceneNewRoom setName={setName} newRoom={newRoom}/>);
+            scene = (<SceneNewRoom setName={setName} newRoom={newRoom}/>);
         } else {
-            return (<SceneJoinRoom setName={setName}/>);
+            scene = (<SceneJoinRoom setName={setName}/>);
         }
     } else if (state.gameRoomState == undefined) {
-        return (<SceneWaitRoom state={state.waitRoomState} setReady={setReady}/>);
+        scene = (<SceneWaitRoom state={state.waitRoomState} setReady={setReady} leaveRoom={leaveRoom}/>);
     } else {
-        return (<SceneGameRoom state={state.gameRoomState} makeGuess={makeGuess}/>);
+        scene = (<SceneGameRoom state={state.gameRoomState} makeGuess={makeGuess} leaveGame={leaveGame}/>);
     }
+    return (<div className={styles.appRoot}>
+        <div className={styles.overlay}>
+            {overlayMessage.map(e => (<div className={styles.overlayMessage}>{e}</div>))}
+        </div>
+        {scene}
+    </div>);
 }
