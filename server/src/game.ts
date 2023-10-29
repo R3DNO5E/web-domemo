@@ -30,10 +30,11 @@ export class Connection {
         this.actionJoinWaitRoom = this.actionJoinWaitRoom.bind(this);
         this.actionSetReadyWaitRoom = this.actionSetReadyWaitRoom.bind(this);
         this.actionMakeGuess = this.actionMakeGuess.bind(this);
-        if (sessionId == undefined || User.findById(sessionId) == undefined) {
+        if (sessionId == undefined) {
             this.user = new User("", this.notifyChange);
         } else {
-            this.user = User.findById(sessionId);
+            const t = User.findById(sessionId);
+            this.user = (t == undefined ? new User("", this.notifyChange) : t);
             this.user.addListener(this.notifyChange);
         }
         this.notifyChange();
@@ -41,7 +42,7 @@ export class Connection {
 
     public renderState(): ClientState {
         if (this.user == undefined) {
-            return;
+            return {};
         }
         const r: ClientState = {
             userState: this.user.renderState()
@@ -75,29 +76,32 @@ export class Connection {
     }
 
     public actionJoinWaitRoom(roomId?: string, players?: number, leaveCurrent?: boolean) {
-        if (GameRoom.findByUser(this.user) != undefined) {
+        const g = GameRoom.findByUser(this.user)
+        if (g != undefined) {
             if (leaveCurrent === true) {
-                const room = GameRoom.findByUser(this.user);
-                room.leaveRoom(this.user);
-                room.notifyChange();
+                g.leaveRoom(this.user);
+                g.notifyChange();
             } else {
                 return;
             }
         }
 
-        if (WaitRoom.findByUser(this.user) != undefined) {
+        const w = WaitRoom.findByUser(this.user);
+        if (w != undefined) {
             if (leaveCurrent === true) {
-                const room = WaitRoom.findByUser(this.user);
-                room.leaveRoom(this.user);
-                room.notifyChange();
+                w.leaveRoom(this.user);
+                w.notifyChange();
             } else {
                 return;
             }
         }
 
-        if (roomId != undefined && WaitRoom.findById(roomId) != undefined) {
+        if (roomId != undefined) {
             let room = WaitRoom.findById(roomId);
-            if (!room.joinRoom(this.user)) {
+            if (room == undefined) {
+                room = new WaitRoom(players);
+                room.joinRoom(this.user);
+            } else if (!room.joinRoom(this.user)) {
                 room = new WaitRoom(players);
                 room.joinRoom(this.user);
             }
@@ -110,19 +114,19 @@ export class Connection {
     }
 
     public actionSetReadyWaitRoom(ready: boolean) {
-        if (WaitRoom.findByUser(this.user) == undefined) {
+        const room = WaitRoom.findByUser(this.user);
+        if (room == undefined) {
             return;
         }
-        const room = WaitRoom.findByUser(this.user);
         room.setReady(this.user, ready);
         room.notifyChange();
     }
 
     public actionMakeGuess(guess: number) {
-        if (GameRoom.findByUser(this.user) == undefined) {
+        const room = GameRoom.findByUser(this.user);
+        if (room == undefined) {
             return;
         }
-        const room = GameRoom.findByUser(this.user);
         const t: ActionResponses.ResponseMakeGuess = {
             response: "MakeGuess",
             success: room.makeGuess(this.user, guess)
@@ -141,7 +145,7 @@ class User extends IdentifiedById {
         super();
         this.listener.push(listener);
         User.indexer.add(this);
-        this.setName(name);
+        this.name = name;
         this.renderState = this.renderState.bind(this);
     }
 
@@ -217,7 +221,7 @@ class WaitRoom extends IdentifiedById {
         this.ready.set(user, ready);
         let allReady = this.users.size == this.maxPlayer;
         this.users.forEach(e => {
-            if (this.ready.has(e) == false || this.ready.get(e) == false) {
+            if (!this.ready.has(e) || this.ready.get(e) == false) {
                 allReady = false;
             }
         });
@@ -248,10 +252,14 @@ class WaitRoom extends IdentifiedById {
         return {
             numPlayer: this.maxPlayer,
             roomId: this.getId(),
-            users: usersSorted.map(e => ({
-                name: e.getName(),
-                ready: this.ready.has(e) ? this.ready.get(e) : false
-            }))
+            users: usersSorted.map(e => {
+                const ready = this.ready.get(e);
+                return ({
+                    name: e.getName(),
+                    ready:
+                        ready === undefined ? false : ready
+                });
+            })
         };
     }
 }
@@ -343,7 +351,7 @@ class GameRoom {
             nextUserOffset++;
         }
         this.turn = (this.turn + nextUserOffset) % this.users.length;
-        const t = Array.from(c.entries()).filter(e => e[1].value == card && e[1].open == false).map(e => e[0]);
+        const t = Array.from(c.entries()).filter(e => e[1].value == card && !e[1].open).map(e => e[0]);
         if (t.length == 0) {
             return false;
         }

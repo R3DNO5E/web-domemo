@@ -263,10 +263,7 @@ export function App({urlParams}: { urlParams: { [p: string]: string } }) {
     }
 
     function leaveGame() {
-        conn.actionEmitter({
-            action: "JoinWaitRoom",
-            roomId: state.waitRoomState.roomId
-        });
+        joinRoom(state.waitRoomState.roomId,undefined);
     }
 
     function leaveRoom() {
