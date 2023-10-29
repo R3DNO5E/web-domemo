@@ -15,7 +15,7 @@ class Connection {
         this.actionEmitter = this.actionEmitter.bind(this);
         this.socket = io({
             auth: {
-                sessionId: sessionStorage.getItem("session_id")
+                sessionId: localStorage.getItem("session_id")
             }
         });
         this.socket.on("state", this.stateEventHandler);
@@ -27,7 +27,7 @@ class Connection {
         if (e == undefined) return;
         if (typeof e == "object" &&
             (this.state.userState == undefined || e.userState.sessionId != this.state.userState.sessionId)) {
-            sessionStorage.setItem("session_id", e.userState.sessionId);
+            localStorage.setItem("session_id", e.userState.sessionId);
         }
         this.state = e;
         this.reportState(this.state);
@@ -170,15 +170,7 @@ export function SceneGameRoom({state, makeGuess, leaveGame}: {
                                     makeGuess(select);
                                 }
                             }}>{state.turn == state.you ? "決定" : "あなたのターンではありません"}</button>
-                </div> : <div className={styles.gameRoomControls}>
-                    <button type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                leaveGame();
-                            }}>
-                        ゲームを退出
-                    </button>
-                </div>}
+                </div>:""}
             <div className={styles.gameRoomPlayers}>
                 <div className={styles.gameRoomPlayer}>
                     <div className={styles.gameRoomPlayerName}>公開カード</div>
@@ -207,6 +199,15 @@ export function SceneGameRoom({state, makeGuess, leaveGame}: {
                         <div className={styles.gameRoomResultRank}>{e.winner + "位"}</div>
                         <div className={styles.gameRoomResultName}>{e.name}</div>
                     </div>))}
+            </div>
+            <div className={styles.gameRoomControls}>
+                <button type="button"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            leaveGame();
+                        }}>
+                    ゲームを退出
+                </button>
             </div>
         </div>
     </div>);

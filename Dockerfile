@@ -7,6 +7,6 @@ COPY common /app/common/
 COPY server /app/server/
 
 WORKDIR /app/server
-CMD ["npm", "install", "--production"]
+RUN ["npm", "install", "--omit=dev"]
 
 ENTRYPOINT ["npm", "start"]
